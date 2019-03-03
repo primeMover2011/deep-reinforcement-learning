@@ -75,7 +75,7 @@ def plot_optimal_policy():
 
     plot_values(V_opt)
 
-#lehrbuchlösung
+#lehrbuchlösung sarsa
 
 def update_Q(Qsa, Qsa_next, reward, alpha, gamma):
     """ updates the action-value function estimate using the most recent time step """
@@ -145,5 +145,56 @@ def sarsa_2(env, num_episodes, alpha, gamma=1.0):
     # print best 100-episode performance
     print(('Best Average Reward over %d Episodes: ' % plot_every), np.max(scores))
     return Q
+############## expected sarsa
 
-evaluate_sarsa()
+def get_expected(Q, next_state, epsilon, nA):
+    #greedy = (1-epsilon)*np.amax(Q[next_state])
+    #greedy_policy = np.ones(nA)*epsilon / nA
+    #alltogether=np.dot(Q[next_state], greedy_policy)
+    #target = alltogether + greedy
+
+    policy = np.ones(nA)*epsilon / nA
+    policy[np.argmax(Q[next_state])] = 1 - epsilon + (epsilon/nA)
+    othertogether= np.dot(Q[next_state], policy)
+    return othertogether
+
+def expected_sarsa(env, num_episodes, alpha, gamma=1.0):
+    # initialize empty dictionary of arrays
+    Q = defaultdict(lambda: np.zeros(env.nA))
+    # loop over episodes
+    for i_episode in range(1, num_episodes+1):
+        # monitor progress
+        if i_episode % 100 == 0:
+            print("\rEpisode {}/{}".format(i_episode, num_episodes), end="")
+            sys.stdout.flush()
+        
+        ## TODO: complete the function
+        epsilon = 0.005
+        state = env.reset()
+        #action = epsilon_greedy_action(Q, state, env.nA, epsilon)
+        t_step=0
+        while True:
+            t_step +=1
+            action = epsilon_greedy_action(Q, state, env.nA, epsilon)
+            next_state, reward, done, info = env.step(action)
+            Q[state][action] = update_Q_sarsa(Q[state][action], get_expected(Q, next_state, epsilon, env.nA), reward, alpha, gamma)
+            state = next_state
+            if done:
+                break                
+    return Q
+
+def evaluate_expected_sars():
+        # obtain the estimated optimal policy and corresponding action-value function
+    env = gym.make('CliffWalking-v0')
+    Q_expsarsa = expected_sarsa(env, 10000, 1)
+
+    # print the estimated optimal policy
+    policy_expsarsa = np.array([np.argmax(Q_expsarsa[key]) if key in Q_expsarsa else -1 for key in np.arange(48)]).reshape(4,12)
+    check_test.run_check('td_control_check', policy_expsarsa)
+    print("\nEstimated Optimal Policy (UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3, N/A = -1):")
+    print(policy_expsarsa)
+
+    # plot the estimated optimal state-value function
+    plot_values([np.max(Q_expsarsa[key]) if key in Q_expsarsa else 0 for key in np.arange(48)])
+
+evaluate_expected_sars()

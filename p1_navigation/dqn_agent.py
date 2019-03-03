@@ -16,7 +16,6 @@ LR = 5e-4               # learning rate
 UPDATE_EVERY = 4        # how often to update the network
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print("Device: ",device)
 
 class Agent():
     """Interacts with and learns from the environment."""
@@ -35,8 +34,8 @@ class Agent():
         self.seed = random.seed(seed)
 
         # Q-Network
-        self.qnetwork_local = QNetwork(state_size, action_size, seed).to(device)
-        self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
+        self.qnetwork_local = QNetwork(state_size, action_size, seed, 128, 128).to(device)
+        self.qnetwork_target = QNetwork(state_size, action_size, seed, 128, 128).to(device)
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory

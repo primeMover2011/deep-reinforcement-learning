@@ -102,3 +102,10 @@ ENV/
 
 # mypy
 .mypy_cache/
+# vs code
+.vscode/
+*.exe
+*.DLL
+Banana/
+
+monte-carlo/Monte_Carlo-Copy1.ipynb
