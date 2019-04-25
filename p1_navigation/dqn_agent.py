@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
+#BUFFER_SIZE = int(1e5)  # replay buffer size
 BUFFER_SIZE = int(1e5)  # replay buffer size
 BATCH_SIZE = 64         # minibatch size
 GAMMA = 0.99            # discount factor
@@ -36,7 +37,8 @@ class Agent():
         # Q-Network
         self.qnetwork_local = QNetwork(state_size, action_size, seed, 128, 128).to(device)
         self.qnetwork_target = QNetwork(state_size, action_size, seed, 128, 128).to(device)
-        self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        #self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
+        self.optimizer = optim.RMSprop(self.qnetwork_local.parameters(), lr = LR) # works better than Adam
 
         # Replay memory
         self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
@@ -94,7 +96,10 @@ class Agent():
         Q_expected = self.qnetwork_local(states).gather(1, actions)
 
         # Compute loss
-        loss = F.mse_loss(Q_expected, Q_targets)
+        # loss = F.mse_loss(Q_expected, Q_targets)
+        loss = F.smooth_l1_loss(Q_expected, Q_targets) # <- huber loss from RL bootcamp
+        prios = loss + 1e-5
+        print(prios.data.cpu().numpy())
         # Minimize the loss
         self.optimizer.zero_grad()
         loss.backward()
