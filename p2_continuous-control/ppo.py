@@ -138,74 +138,11 @@ def compute_gaes(next_value, rewards, masks, values, gamma=0.99, tau=0.95):
         returns.insert(0, advantage + values[step])
     return returns
 
-def compute_gae_rollout(rollout, gamma=0.99, tau=0.95):
-    storage = [None] * (len(rollout) - 1)
-
-    shape = (num_agents, 1)
-    advantage = torch.Tensor(np.zeros(shape))
-
-    for i in reversed(range(len(rollout) - 1)):
-        # rollout --> tuple ( s, a, p(a|s), r, dones, V(s) ) FOR ALL AGENT
-        # rollout --> last row (s, none, none, none, pending_value) FOR ALL AGENT
-        state, action, log_prob, reward, done, value = rollout[i]
-
-        # last step - next_return = pending_value
-        if i == len(rollout) - 2:
-            next_return = rollout[i + 1][-1]
-
-        state = torch.Tensor(state)
-        action = torch.Tensor(action)
-        reward = torch.Tensor(reward).unsqueeze(1)
-        done = torch.Tensor(done).unsqueeze(1)
-
-        next_value = rollout[i + 1][-1]
-
-        # G(t) = r + G(t+1)
-        g_return = reward + gamma * next_return * done
-        next_return = g_return
-        # g_return = reward + GAMMA * g_return*done
-
-        # Compute TD error
-        td_error = reward + gamma * next_value - value
-        # Compute advantages
-        advantage = advantage * tau * gamma * done + td_error
-
-        # Add (s, a, p(a|s), g, advantage)
-        storage[i] = [state, action, log_prob, g_return, advantage]
-    return storage
-
-
-def normalize(x, mean=0., std=1., epsilon=1e-8):
-    x = (x - np.mean(x)) / (np.std(x) + epsilon)
-    x = x * std + mean
-
-    return x
-
 
 
 
 from unityagents import UnityEnvironment
 import numpy as np
-
-def toast_agent(env, brain_name, model, device):
-    env_info = env.reset(train_mode = True)[brain_name]
-    state = env_info.vector_observations[0]
-    scores = 0.0
-    while True:
-        state = torch.FloatTensor(state).to(device)
-        dist, _ = model(state)
-        action_t = dist.sample()
-        action_np = action_t.cpu().data.numpy()
-
-        env_info = env.step(action_np)[brain_name]
-        next_states = env_info.vector_observations
-        rewards = env_info.rewards
-        dones = env_info.local_done
-        scores += reward
-        state = next_state
-        if done:
-            break
-    return scores
 
 def test_agent(env, brain_name,  model, device):
     env_info = env.reset(train_mode = True)[brain_name]
@@ -242,8 +179,8 @@ def main():
     lr               = 3e-4
     num_steps        = 2048
     mini_batch_size  = 32
-    ppo_epochs       = 10
-    threshold_reward = 10
+    ppo_epochs       = 5
+    threshold_reward = 30
 
 
 
@@ -252,7 +189,9 @@ def main():
     test_rewards = []
 
 
+#    env = UnityEnvironment(file_name='p2_continuous-control/reacher20/reacher', base_port=64739)
     env = UnityEnvironment(file_name='reacher20/reacher', base_port=64739)
+
     # get the default brain
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
@@ -317,27 +256,28 @@ def main():
         _, next_value = model(next_state)
 
 #        returns = compute_gae(next_value, rewards, masks, values)
-        mean1 = torch.mean(torch.stack(rewards))
-        print("Rewards: ", mean1)
+        #mean1 = torch.mean(torch.stack(rewards))
+        #print("Rewards: ", mean1)
         returns = compute_gaes(next_value, rewards, masks, values)
 #        return2 = compute_gae_rollout(rollout)
 
 
         returns   = torch.cat(returns).detach()
         mean2 = torch.mean(returns)
-        print("Returns: ", mean2)
+        #print("Returns: ", mean2)
         log_probs = torch.cat(log_probs).detach()
         values    = torch.cat(values).detach()
         states    = torch.cat(states_list)
         actions   = torch.cat(actions_list)
         advantages = returns - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        #returns = (returns - returns.mean()) / (returns.std() + 1e-8)
   
         losses=[]
 
         clip_param = 0.2
+        print("return: ", returns.mean(), "advantage:", advantages.mean())
         for _ in range(ppo_epochs):
-            print("return: ", returns.mean(), "advantage:", advantages.mean())
             for state, action, old_log_probs, return_, advantage in ppo_iter(mini_batch_size, states, actions,
                                                                              log_probs, returns, advantages):
                 #print("return: ", return_.mean(), "advantage:", advantage.mean())
@@ -369,8 +309,13 @@ def main():
         test_mean_reward = test_agent(env, brain_name, model, device)
         test_rewards.append(test_mean_reward)
         scores_window.append(test_mean_reward)
-        #mean_score = np.mean(scores_window)
-        #print("Mean Score: ", mean_score, "Frame: ", episode)
+        mean_score = np.mean(scores_window)
+        print("Mean Score: ", mean_score, "Frame: ", episode)
+        if np.mean(scores_window) > 30.0:
+            torch.save(model.state_dict(), f"ppo_checkpoint_30.pth")
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(episode, np.mean(test_rewards)))
+            break       
+
         print('Episode {}, Total score this episode: {}, Last {} average: {}'.format(episode, test_mean_reward,
                                                                                      min(episode, 100),
                                                                                      np.mean(scores_window)))

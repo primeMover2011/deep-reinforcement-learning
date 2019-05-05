@@ -12,7 +12,7 @@ GAMMA = 0.99  # discount rate
 TAU = 0.95  # tau
 
 GRADIENT_CLIP = 5  # gradient clip
-NUM_EPOCHS = 30000  # optimization epochs
+NUM_EPOCHS = 30000   # optimization epochs
 CLIP = 0.2  # PPO clip
 
 BETA = 0.01  # entropy coefficient
