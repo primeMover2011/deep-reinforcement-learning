@@ -49,7 +49,7 @@ class ActorCriticPolicy(nn.Module):
         return dist, value
 
 
-def ppo_iter(mini_batch_size, states, actions, log_probs, returns, advantage):
+def sample(mini_batch_size, states, actions, log_probs, returns, advantage):
     batch_size = states.size(0)
     for _ in range(batch_size // mini_batch_size):
         rand_ids = np.random.randint(0, batch_size, mini_batch_size)
@@ -57,10 +57,10 @@ def ppo_iter(mini_batch_size, states, actions, log_probs, returns, advantage):
                                                                                                        rand_ids, :]
 
 
-def ppo_update(ppo_epochs, mini_batch_size, states, actions, log_probs, returns, advantages, model, optimizer,
+def learn(ppo_epochs, mini_batch_size, states, actions, log_probs, returns, advantages, model, optimizer,
                clip_param=0.2):
     for _ in range(ppo_epochs):
-        for state, action, old_log_probs, return_, advantage in ppo_iter(mini_batch_size, states, actions, log_probs,
+        for state, action, old_log_probs, return_, advantage in sample(mini_batch_size, states, actions, log_probs,
                                                                          returns, advantages):
             dist, value = model(state)
             entropy = dist.entropy().mean()
@@ -313,7 +313,7 @@ def experiment(hidden_size=64, lr=3e-4, num_steps=2048, mini_batch_size=32, ppo_
         clip_param = 0.2
         for _ in range(ppo_epochs):
             print("return: ", returns.mean(), "advantage:", advantages.mean())
-            for state, action, old_log_probs, return_, advantage in ppo_iter(mini_batch_size, states, actions,
+            for state, action, old_log_probs, return_, advantage in sample(mini_batch_size, states, actions,
                                                                              log_probs, returns, advantages):
                 # print("return: ", return_.mean(), "advantage:", advantage.mean())
                 dist, value = model(state)
