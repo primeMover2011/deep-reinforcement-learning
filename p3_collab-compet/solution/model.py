@@ -20,9 +20,9 @@ class Actor(nn.Module):
         self.selu = nn.SELU()
         self.tanh = nn.Tanh()
 
-        self.fc1.weight.data = layer_init(self.fc1.weight.data.size())
-        self.fc2.weight.data = layer_init(self.fc2.weight.data.size())
-        self.fc3.weight.data.uniform_(-3.e-3, 3.e-3)
+#        self.fc1.weight.data = layer_init(self.fc1.weight.data.size()[0])
+#        self.fc2.weight.data = layer_init(self.fc2.weight.data.size()[0])
+#        self.fc3.weight.data.uniform_(-3.e-3, 3.e-3)
 
     def forward(self, states):
         x = self.fc1(states)
@@ -39,13 +39,13 @@ class Critic(nn.Module):
     def __init__(self, state_size, action_size, num_agents, seed=64738, hidden_size=256):
         super(Critic, self).__init__()
         self.seed = torch.manual_seed(seed)
-        self.fc1 = nn.Linear(state_size*num_agents, hidden_size)
-        self.fc2 = nn.Linear(hidden_size+action_size*num_agents, hidden_size)
+        self.fc1 = nn.Linear(state_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size+action_size, hidden_size)
         self.fc3 = nn.Linear(hidden_size, 1)
         self.selu = nn.SELU()
 
-        self.fc1.weight.data = layer_init(self.fc1.weight.data.size())
-        self.fc2.weight.data = layer_init(self.fc2.weight.data.size())
+        self.fc1.weight.data = layer_init(self.fc1.weight.data.size()[0])
+        self.fc2.weight.data = layer_init(self.fc2.weight.data.size()[0])
         self.fc3.weight.data.uniform_(-3.e-3, 3.e-3)
 
 

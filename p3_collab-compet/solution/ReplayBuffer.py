@@ -2,6 +2,7 @@ import numpy as np
 import random
 from collections import deque, namedtuple
 import torch
+device = torch.device("cpu")
 
 class ReplayBuffer:
     """Replaybuffer to store experiences."""

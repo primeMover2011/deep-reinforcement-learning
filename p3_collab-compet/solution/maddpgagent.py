@@ -22,8 +22,8 @@ EPS_START = 5.0         # initial value for epsilon in noise decay process in Ag
 EPS_EP_END = 300        # episode to end the noise decay process
 EPS_FINAL = 0           # final value for epsilon after decay
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
 class MADDPGAgent:
     """Interacts with and learns from the environment."""
@@ -67,25 +67,15 @@ class MADDPGAgent:
                     experiences = self.memory.sample()
                     self.learn(experiences, GAMMA, agent_number)
 
-    def act(self, states, add_noise):
-        """Returns actions for both agents as per current policy, given their respective states."""
+    def act(self, states):
         states = torch.from_numpy(states).float().to(device)
-        actions = np.zeros((self.num_agents, self.action_size))
         self.actor_local.eval()
         with torch.no_grad():
-            # get action for each agent and concatenate them
-            for agent_num, state in enumerate(states):
-                action = self.actor_local(state).cpu().data.numpy()
-                actions[agent_num, :] = action
+            action = self.actor_local(states).cpu().data.numpy()
         self.actor_local.train()
-
-        # add noise to actions
-        actions += 0.5 * np.random.randn(1)
-        actions = np.clip(actions, -1, 1)
-        return actions
-
-    def reset(self):
-        self.noise.reset()
+        action += 0.5 * np.random.randn(1)
+        action = np.clip(action, -1, 1)
+        return action
 
     def learn(self, experiences, gamma, agent_number):
         """Update policy and value parameters using given batch of experience tuples.

@@ -3,6 +3,7 @@ import numpy as np
 from collections import deque
 import os
 from maddpgagent import MADDPGAgent
+PRINT_EVERY = 10
 
 def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
     """Multi-Agent Deep Deterministic Policy Gradient (MADDPG)
@@ -36,7 +37,7 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
         states = np.concatenate([state for state in env_info.vector_observations])
         scores = np.zeros(num_agents)
         while True:
-            actions = [agent.act(states) for agent in agents]
+            actions = [agent.act(env_info.vector_observations[i]) for i, agent in enumerate(agents)]
             env_info = env.step(actions)[brain_name]  # send both agents' actions together to the environment
             next_states = np.concatenate([state for state in env_info.vector_observations])
             rewards = env_info.rewards  # get reward
@@ -60,9 +61,9 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
 #            best_episode = i_episode
 
         # print results
- #       if i_episode % PRINT_EVERY == 0:
-#            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
- #               i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
+        if i_episode % PRINT_EVERY == 0:
+            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
+                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
 
         # determine if environment is solved and keep best performing models
 #        if moving_average[-1] >= SOLVED_SCORE:
@@ -101,6 +102,11 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
 
 def main():
     os.environ['NO_PROXY'] = 'localhost,127.0.0.*'
+    try:
+        os.chdir(os.path.join(os.getcwd(), 'p3_collab-compet/solution'))
+        print(os.getcwd())
+    except:
+        pass
     maddpg()
 
 if __name__ == "__main__":
