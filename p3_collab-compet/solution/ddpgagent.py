@@ -1,9 +1,6 @@
-
 import numpy as np
-from collections import namedtuple, deque
 import torch
 import random
-from copy import deepcopy
 from model import Actor, Critic
 from torch.optim import Adam
 
@@ -53,10 +50,8 @@ class DDPGAgent:
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
         with torch.no_grad():
-            action = self.actor_local(state).cpu().data.numpy()
+            action = self.actor_local(state).cpu().data.numpy() + noise * np.random.randn(1, self.action_size)
         self.actor_local.train()
-        action += noise * noise
-           
         return np.clip(action, -1, 1)
 
     def target_act(self, state, noise=0.0):

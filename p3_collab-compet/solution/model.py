@@ -51,10 +51,10 @@ class Critic(nn.Module):
 
 
 
-    def forward(self, state, action):
+    def forward(self, states, actions):
         """Value network that maps (state, action) pairs to Q-values."""
-        x = self.fc1(state)
+        x = self.fc1(states)
         x = self.selu(x)
-        x = self.fc2(torch.cat([x,action],1))
+        x = self.fc2(torch.cat([x,actions],1))
         x = self.selu(x)
         return self.fc3(x)

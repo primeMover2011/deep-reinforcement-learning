@@ -113,3 +113,4 @@ p2_continuous-control/Reacher20/*
 p2_continuous-control/plot_*.png
 p3_collab-compet/Tennis_Windows_x86_64/*
 p3_collab-compet/workspace/*
+p3_collab-compet/solution/Tennis/*
