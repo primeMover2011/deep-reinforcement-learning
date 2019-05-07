@@ -35,15 +35,18 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
     for i_episode in range(1, n_episodes + 1):
         env_info = env.reset(train_mode=train_mode)[brain_name]
         states = np.concatenate([state for state in env_info.vector_observations])
+        #states = env_info.vector_observations
+
         scores = np.zeros(num_agents)
         while True:
-            actions = [agent.act(env_info.vector_observations[i]) for i, agent in enumerate(agents)]
+            actions = [agent.act(states[i*state_size:(i+1)*state_size]) for i, agent in enumerate(agents)]
             env_info = env.step(actions)[brain_name]  # send both agents' actions together to the environment
             next_states = np.concatenate([state for state in env_info.vector_observations])
+            #next_states = env_info.vector_observations
             rewards = env_info.rewards  # get reward
             dones = env_info.local_done  # see if episode finished
             for i, agent in enumerate(agents):
-              agent.step(states, actions, rewards[i], next_states, dones, 0)  # agent 1 learns
+              agent.step(states, actions, rewards[i], next_states, dones, i)  # agent 1 learns
 
             scores += np.max(rewards)  # update the score for each agent
             states = next_states  # roll over states to next time step

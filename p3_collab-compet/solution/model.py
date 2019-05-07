@@ -44,9 +44,9 @@ class Critic(nn.Module):
         self.fc3 = nn.Linear(hidden_size, 1)
         self.selu = nn.SELU()
 
-        self.fc1.weight.data = layer_init(self.fc1.weight.data.size()[0])
-        self.fc2.weight.data = layer_init(self.fc2.weight.data.size()[0])
-        self.fc3.weight.data.uniform_(-3.e-3, 3.e-3)
+        #self.fc1.weight.data = layer_init(self.fc1.weight.data.size()[0])
+        #self.fc2.weight.data = layer_init(self.fc2.weight.data.size()[0])
+        #self.fc3.weight.data.uniform_(-3.e-3, 3.e-3)
 
 
 
