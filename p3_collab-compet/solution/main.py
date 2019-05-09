@@ -2,10 +2,11 @@ from unityagents import UnityEnvironment
 import numpy as np
 from collections import deque
 import os
-from maddpgagent import MADDPGAgent
-PRINT_EVERY = 10
+from maddpg import MADDPGAgent
+from tqdm import tqdm
+PRINT_EVERY = 100
 
-def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
+def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
     """Multi-Agent Deep Deterministic Policy Gradient (MADDPG)
 
     Params
@@ -16,7 +17,7 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
 
     """
 
-    env = UnityEnvironment(file_name="Tennis/Tennis", base_port=64738)
+    env = UnityEnvironment(file_name="Tennis/Tennis", base_port=64738, no_graphics=True)
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     env_info = env.reset(train_mode=True)[brain_name]
@@ -26,28 +27,24 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
     states = env_info.vector_observations
     state_size = states.shape[1]
 
-    agents = [MADDPGAgent(state_size, action_size, num_agents=num_agents, random_seed=0) for _ in range(num_agents)]
+    maddpgagent = MADDPGAgent(state_size, action_size, num_agents=num_agents, random_seed=0)
+
 
     scores_window = deque(maxlen=100)
     scores_all = []
     moving_average = []
 
-    for i_episode in range(1, n_episodes + 1):
+    for i_episode in tqdm(range(1, n_episodes + 1)):
         env_info = env.reset(train_mode=train_mode)[brain_name]
-        states = np.concatenate([state for state in env_info.vector_observations])
-        #states = env_info.vector_observations
-
+        states = env_info.vector_observations
         scores = np.zeros(num_agents)
         while True:
-            actions = [agent.act(states[i*state_size:(i+1)*state_size]) for i, agent in enumerate(agents)]
+            actions = maddpgagent.act(states)
             env_info = env.step(actions)[brain_name]  # send both agents' actions together to the environment
-            next_states = np.concatenate([state for state in env_info.vector_observations])
-            #next_states = env_info.vector_observations
+            next_states = env_info.vector_observations
             rewards = env_info.rewards  # get reward
             dones = env_info.local_done  # see if episode finished
-            for i, agent in enumerate(agents):
-              agent.step(states, actions, rewards[i], next_states, dones, i)  # agent 1 learns
-
+            maddpgagent.step(states, actions, rewards, next_states, dones)
             scores += np.max(rewards)  # update the score for each agent
             states = next_states  # roll over states to next time step
             if np.any(dones):  # exit loop if episode finished
@@ -63,10 +60,14 @@ def maddpg(n_episodes=2000, max_t=1000, train_mode=True):
 #            best_score = ep_best_score
 #            best_episode = i_episode
 
-        # print results
         if i_episode % PRINT_EVERY == 0:
-            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
-                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
+            print('\rEpisode {}\tAverage Training Score: {:.3f}'
+                  .format(i_episode, np.mean(scores_window)))
+
+        # print results
+#        if i_episode % PRINT_EVERY == 0:
+#            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
+#                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
 
         # determine if environment is solved and keep best performing models
 #        if moving_average[-1] >= SOLVED_SCORE:

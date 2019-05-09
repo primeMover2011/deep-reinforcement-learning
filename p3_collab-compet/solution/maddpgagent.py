@@ -92,19 +92,19 @@ class MADDPGAgent:
 
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
-        actions_next = self.actor_target(next_states[:, agent_number*self.state_size:(agent_number+1)*self.state_size])
+        next_actions = self.actor_target(next_states[:, agent_number*self.state_size:(agent_number+1)*self.state_size])
         # Construct next actions vector relative to the agent
-        actions_next = torch.cat((actions_next, actions[agent_number::self.num_agents]), dim=1)
+        next_actions = torch.cat((next_actions, actions[agent_number::self.num_agents]), dim=1)
 
         #else:
         #    actions_next = torch.cat((actions[:,:2], actions_next), dim=1)
 
         # Compute Q targets for current states (y_i)
-        check shape of states actions
-        Q_targets_next = self.critic_target(next_states, actions_next)
+        #check shape of states actions
+        Q_targets_next = self.critic_target(next_states, next_actions)
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
         # Compute critic loss
-        check shape of states actions
+        #check shape of states actions
         Q_expected = self.critic_local(states, actions)
         critic_loss = F.mse_loss(Q_expected, Q_targets)
         # Minimize the loss

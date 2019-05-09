@@ -62,7 +62,7 @@ class DDPGAgent:
         return np.clip(action, -1, 1)
 
 
- def learn(self, experiences, gamma, agent_number):
+    def learn(self, experiences, gamma, agent_number):
         """Update policy and value parameters using given batch of experience tuples.
         Q_targets = r + γ * critic_target(next_state, actor_target(next_state))
         where:
@@ -70,7 +70,7 @@ class DDPGAgent:
             critic_target(state, action) -> Q-value
         Params
         ======
-            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples 
+            experiences (Tuple[torch.Tensor]): tuple of (s, a, r, s', done) tuples
             gamma (float): discount factor
         """
         states, actions, rewards, next_states, dones = experiences
@@ -78,12 +78,12 @@ class DDPGAgent:
         # ---------------------------- update critic ---------------------------- #
         # Get predicted next-state actions and Q values from target models
         actions_next = self.actor_target(next_states)
-        
+
         if agent_number == 0:
             actions_next = torch.cat((actions_next, actions[:,2:]), dim=1)
         else:
             actions_next = torch.cat((actions[:,:2], actions_next), dim=1)
-            
+
         Q_targets_next = self.critic_target(next_states, actions_next)
         # Compute Q targets for current states (y_i)
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
@@ -98,7 +98,7 @@ class DDPGAgent:
         # ---------------------------- update actor ---------------------------- #
         # Compute actor loss
         actions_pred = self.actor_local(states)
-        
+
         if agent_number == 0:
             actions_pred = torch.cat((actions_pred, actions[:,2:]), dim=1)
         else:
@@ -112,11 +112,17 @@ class DDPGAgent:
 
         # ----------------------- update target networks ----------------------- #
         self.soft_update(self.critic_local, self.critic_target, TAU)
-        self.soft_update(self.actor_local, self.actor_target, TAU)                     
+        self.soft_update(self.actor_local, self.actor_target, TAU)
 
-        # Update epsilon noise value
-        self.eps = self.eps - (1/eps_decay)
-        if self.eps < eps_end:
-            self.eps=eps_end        
-
+    def soft_update(self, local_model, target_model, tau):
+        """Soft update model parameters.
+        θ_target = τ*θ_local + (1 - τ)*θ_target
+        Params
+        ======
+            local_model: PyTorch model (weights will be copied from)
+            target_model: PyTorch model (weights will be copied to)
+            tau (float): interpolation parameter
+        """
+        for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
