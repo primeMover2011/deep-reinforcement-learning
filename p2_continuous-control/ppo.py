@@ -194,18 +194,14 @@ def main():
 #***                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
     scores = [
 
-#    run_experiment(hidden_size=256, lr=1e-3, max_episodes=30, mini_batch_size=512,
-#                                                   nrmlz_adv=False, num_steps=2048, ppo_epochs=4, threshold_reward=20),
-
-
     run_experiment(hidden_size=256, lr=1e-3, max_episodes=30, mini_batch_size=128,
-                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=20, clip_gradients=True),
+                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=30, clip_gradients=True),
 
     run_experiment(hidden_size=256, lr=1e-3, max_episodes=30, mini_batch_size=32,
-                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=20, clip_gradients=True),
+                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=30, clip_gradients=True),
 
     run_experiment(hidden_size=256, lr=1e-3, max_episodes=30, mini_batch_size=128,
-                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=20, clip_gradients=False)
+                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=4, threshold_reward=30, clip_gradients=False)
     ]
     plot([x[0] for x in scores], "Scores")
 
@@ -249,7 +245,6 @@ def experiment(hidden_size=64, lr=3e-4, num_steps=2048, mini_batch_size=32, ppo_
     model = ActorCriticPolicy(num_inputs, num_outputs, hidden_size).to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr, eps=1e-5)
 
-    #    while episode < max_episodes and not early_stop:
     for episode in tqdm(range(max_episodes)):
         log_probs = []
         values = []
@@ -354,10 +349,6 @@ def experiment(hidden_size=64, lr=3e-4, num_steps=2048, mini_batch_size=32, ppo_
             break
 
         episode += 1
-
-    # %%
-    #torch.save(model.state_dict(),
-    #          f"ppo_checkpoint_{test_mean_reward}_e{episode}_hs{hidden_size}_lr{lr}_st{num_steps}_b{mini_batch_size}_ppo{ppo_epochs}_r{threshold_reward}_e{episode}_adv{nrmlz_adv}.pth")
 
     env.close()
     return scores_window, test_rewards

@@ -10,16 +10,14 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-#GAMMA = 0.95  # discount factor
-GAMMA = 0.95  # discount factor
+#GAMMA = 0.99  # discount factor
+GAMMA = 0.99  # discount factor
 
-#TAU = 0.01  # for soft update of target parameters
 TAU = 0.01  # for soft update of target parameters
 
-#LR_ACTOR = 0.001  # learning rate of the actor
-#LR_CRITIC = 0.001  # learning rate of the critic
 
 LR_ACTOR = 0.001  # learning rate of the actor
+#LR_CRITIC = 0.001  # learning rate of the critic
 LR_CRITIC = 0.001  # learning rate of the critic
 
 
