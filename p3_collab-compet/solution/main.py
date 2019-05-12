@@ -17,7 +17,7 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
 
     """
 
-    env = UnityEnvironment(file_name="Tennis/Tennis", base_port=64738, no_graphics=True)
+    env = UnityEnvironment(file_name="Tennis/Tennis", base_port=64738)
     brain_name = env.brain_names[0]
     brain = env.brains[brain_name]
     env_info = env.reset(train_mode=True)[brain_name]
@@ -29,23 +29,26 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
 
     maddpgagent = MADDPGAgent(state_size, action_size, num_agents=num_agents, random_seed=0)
 
+    ou_noise = 2.0
+    ou_noise_decay_rate = 0.998
 
     scores_window = deque(maxlen=100)
     scores_all = []
     moving_average = []
 
-    for i_episode in tqdm(range(1, n_episodes + 1)):
+    for i_episode in range(1, n_episodes + 1):
         env_info = env.reset(train_mode=train_mode)[brain_name]
         states = env_info.vector_observations
+        maddpgagent.reset()
         scores = np.zeros(num_agents)
         while True:
-            actions = maddpgagent.act(states)
+            actions = maddpgagent.act(states, noise = ou_noise)
             env_info = env.step(actions)[brain_name]  # send both agents' actions together to the environment
             next_states = env_info.vector_observations
-            rewards = env_info.rewards  # get reward
-            dones = env_info.local_done  # see if episode finished
+            rewards = np.asarray(env_info.rewards)  # get reward
+            dones = np.asarray(env_info.local_done).astype(np.uint8)  # see if episode finished
             maddpgagent.step(states, actions, rewards, next_states, dones)
-            scores += np.max(rewards)  # update the score for each agent
+            scores += rewards  # update the score for each agent
             states = next_states  # roll over states to next time step
             if np.any(dones):  # exit loop if episode finished
                 break
@@ -54,6 +57,10 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
         scores_window.append(ep_best_score)
         scores_all.append(ep_best_score)
         moving_average.append(np.mean(scores_window))
+        ou_noise *= ou_noise_decay_rate
+
+        print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}'
+              .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window)), end='')
 
         # save best score
 #        if ep_best_score > best_score:
@@ -61,11 +68,15 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
 #            best_episode = i_episode
 
         if i_episode % PRINT_EVERY == 0:
-            print('\rEpisode {}\tAverage Training Score: {:.3f}'
-                  .format(i_episode, np.mean(scores_window)))
+            print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}\tMoving Average: {:.3f}'
+                  .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window),moving_average[-1]))
+#        if i_episode % 500 == 0:
+#            print(f"ounoise:{ou_noise}")
+#            ou_noise = 2.0
 
         # print results
-#        if i_episode % PRINT_EVERY == 0:
+        if moving_average[-1] >= 0.5:
+            print("B      I    NN   GOOOOO")
 #            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
 #                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
 
@@ -111,7 +122,7 @@ def main():
         print(os.getcwd())
     except:
         pass
-    maddpg()
+    maddpg(n_episodes=100000)
 
 if __name__ == "__main__":
     main()

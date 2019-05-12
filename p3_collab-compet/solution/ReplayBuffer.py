@@ -2,7 +2,8 @@ import numpy as np
 import random
 from collections import deque, namedtuple
 import torch
-device = torch.device("cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+#device = torch.device("cpu")
 
 class ReplayBuffer:
     """Replaybuffer to store experiences."""
@@ -34,15 +35,17 @@ class ReplayBuffer:
 #        rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
 #        next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(device)
 #        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
+        experiences = list(map(lambda x: np.asarray(x), zip(*experiences)))
+        states, actions, rewards, next_states, dones = [torch.from_numpy(e).float().to(device) for e in experiences]
 
-        states = np.array([e.state for e in experiences if e is not None])
-        actions = np.array([e.action for e in experiences if e is not None])
-        rewards = np.array([e.reward for e in experiences if e is not None])
-        next_states = np.array([e.next_state for e in experiences if e is not None])
-        dones = np.array([e.done for e in experiences if e is not None], dtype=np.uint8)
+#        states = np.array([e.state for e in experiences if e is not None])
+#        actions = np.array([e.action for e in experiences if e is not None])
+#        rewards = np.array([e.reward for e in experiences if e is not None])
+#        next_states = np.array([e.next_state for e in experiences if e is not None])
+#        dones = np.array([e.done for e in experiences if e is not None], dtype=np.uint8)
 
 
-        return (states, actions, rewards, next_states, dones)
+        return states, actions, rewards, next_states, dones
 
     def __len__(self):
         """Return the current size of internal memory."""

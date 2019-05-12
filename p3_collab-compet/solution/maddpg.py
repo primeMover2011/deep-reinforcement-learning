@@ -4,7 +4,7 @@ import torch
 from agent import Agent
 from ReplayBuffer import ReplayBuffer
 
-BUFFER_SIZE = int(3e5)  # replay buffer size
+BUFFER_SIZE = int(1000000)  # replay buffer size
 BATCH_SIZE = 512  # minibatch size
 GAMMA = 0.95  # discount factor
 UPDATE_EVERY = 2
@@ -23,6 +23,7 @@ class MADDPGAgent():
             state_size (int): dimension of one agent's observation
             action_size (int): dimension of each action
         """
+        self.device = device
         self.losses = []
         self.state_size = state_size
         self.action_size = action_size
@@ -35,9 +36,14 @@ class MADDPGAgent():
         # Time steps for UPDATE EVERY
         self.t_step = 0
 
-    def act(self, states, rand=False):
+    def act(self, states, noise = 0., train=False):
         """Agents act with actor_local"""
-        actions = [agent.act(states[i]) for i, agent in enumerate(self.agents)]
+        states = torch.from_numpy(states).float().to(self.device).unsqueeze(0)
+        with torch.no_grad():
+            actions = [agent.act(states[:,i], noise = noise, train = False) for i, agent in enumerate(self.agents)]
+            actions = torch.stack(actions).transpose(1,0)
+            actions = np.vstack([action.cpu().numpy() for action in actions])
+
         return actions
 
     def step(self, states, actions, rewards, next_states, dones, learn=True):
@@ -49,28 +55,55 @@ class MADDPGAgent():
 
         # Learn, if enough samples are available in memory
         if self.t_step % UPDATE_EVERY == 0:
-            if learn == True and len(self.memory) > BATCH_SIZE:
+            if learn is True and len(self.memory) > BATCH_SIZE:
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
 
+    def reset(self):
+        for agent in self.agents:
+            agent.reset()
+
     def learn(self, experiences, GAMMA):
         states, actions, rewards, next_states, dones = experiences
-        dones = torch.from_numpy(dones).float().to(device)
-        rewards = torch.from_numpy(rewards).float().to(device)
 
         # next actions as input for critic
-        next_actions = np.array([agent.target_act(next_states[:, agent_number]) for agent_number, agent in enumerate(self.agents)])
-        next_actions = np.column_stack(next_actions)
-        #next_actions = np.transpose(next_actions)
-        # action predictions for actor network
-        predicted_actions = np.array([agent.act(states[:, agent_number]) for agent_number, agent in enumerate(self.agents)])
-        predicted_actions = np.column_stack(predicted_actions)
+        target_next_actions = [agent.target_act(next_states[:, agent_number]) for agent_number, agent in enumerate(self.agents)]
+        target_next_actions = torch.stack(target_next_actions).transpose(1, 0).contiguous()
+        target_next_actions = self.flatten(target_next_actions).to(self.device)
+
+        predicted_actions_t = [agent.act(states[:, agent_number], train=True) for agent_number, agent in enumerate(self.agents)]
+        predicted_actions_t = torch.stack(predicted_actions_t).transpose(1, 0).contiguous()
+        predicted_actions = predicted_actions_t.to(self.device)
+
+        flat_states = self.flatten(states)
+        flat_actions = self.flatten(actions)
+        flat_next_states = self.flatten(next_states)
+
+
 
         for agent_number, agent in enumerate(self.agents):
-            starting = agent_number*self.action_size
-            to = (agent_number+1)*self.action_size
-            actor_loss, critic_loss = agent.learn(states[:, agent_number], actions[:,agent_number], rewards[:,agent_number],
-                        next_states[:, agent_number], dones[:, agent_number], next_actions[:, starting:to],
-                        predicted_actions[:, starting:to],
-                        np.array(states), np.array(actions), np.array(next_states), next_actions, predicted_actions)
-            self.losses.append([actor_loss, critic_loss])
+
+            agent.update_critic(rewards = rewards[:, agent_number].unsqueeze(-1),
+                                dones = dones[:, agent_number].unsqueeze(-1),
+                                all_states=flat_states,
+                                all_actions = flat_actions,
+                                all_next_states=flat_next_states,
+                                all_next_actions=target_next_actions)
+
+            predicted_actions_for_agent = predicted_actions.detach()
+            predicted_actions_for_agent[:,agent_number] = predicted_actions[:, agent_number]
+            predicted_actions_for_agent = self.flatten(predicted_actions_for_agent)
+
+            agent.update_actor(all_states=flat_states, all_predicted_actions=predicted_actions_for_agent)
+
+            agent.update_targets()
+
+#            actor_loss, critic_loss = agent.learn(rewards=rewards[:,agent_number].unsqueeze(-1),
+#                        dones = dones[:, agent_number].unsqueeze(-1),
+#                        all_states=flat_states, all_actions=flat_actions,
+#                        all_next_states=flat_next_states, all_next_actions=target_next_actions,
+#                        all_predicted_actions=predicted_actions_for_agent)
+            #self.losses.append([actor_loss, critic_loss])
+
+    def flatten(self, tensor):
+        return tensor.view(tensor.shape[0], tensor.shape[1] * tensor.shape[2])
