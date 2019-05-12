@@ -142,56 +142,6 @@ def main():
     nrmlz_adv = True
     test_mean_reward = 1.
 
-# plot([np.sin(x)], "Pi", "Lolololols sldk lskd lis dpsdlösödp ö spdops dösd psod ö")
-# Random tries
-#**    scores_window1, test_rewards1 = run_experiment(hidden_size=256, lr=3e-4, max_episodes=20, mini_batch_size=32,
-#**                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#    scores_window2, test_rewards2 = run_experiment(hidden_size=256, lr=3e-4, max_episodes=20, mini_batch_size=512,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#    scores_window3, test_rewards3 = run_experiment(hidden_size=256, lr=1e-5, max_episodes=20, mini_batch_size=32,
-#                                                   nrmlz_adv=False, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-
-#Batch size, learning rate, no normalization
-#    scores_window1, test_rewards1 = run_experiment(hidden_size=256, lr=3e-4, max_episodes=20, mini_batch_size=512,
-#                                                   nrmlz_adv=False, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-
-#    scores_window2, test_rewards2 = run_experiment(hidden_size=256, lr=3e-4, max_episodes=20, mini_batch_size=256,
-#                                                   nrmlz_adv=False, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-
-#    scores_window3, test_rewards3 = run_experiment(hidden_size=256, lr=6e-4, max_episodes=20, mini_batch_size=256,
-#                                                   nrmlz_adv=False, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#Normalization bigger net.
-#    scores_window1, test_rewards1 = run_experiment(hidden_size=512, lr=3e-4, max_episodes=20, mini_batch_size=512,
-#                                                    nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#    scores_window2, test_rewards2 = run_experiment(hidden_size=512, lr=3e-4, max_episodes=20, mini_batch_size=1024,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#    scores_window3, test_rewards3 = run_experiment(hidden_size=512, lr=3e-4, max_episodes=20, mini_batch_size=32,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
-
-#smaller net, normalization, smaller batch
-#    scores_window1, test_rewards1 = run_experiment(hidden_size=64, lr=3e-4, max_episodes=20, mini_batch_size=16,
-#                                                    nrmlz_adv=True, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-
-#    scores_window2, test_rewards2 = run_experiment(hidden_size=64, lr=3e-4, max_episodes=20, mini_batch_size=32,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-
-#**    scores_window3, test_rewards3 = run_experiment(hidden_size=64, lr=3e-4, max_episodes=20, mini_batch_size=64,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-
-# new contender
-#***    scores_window1, test_rewards1 = run_experiment(hidden_size=512, lr=3e-4, max_episodes=40, mini_batch_size=1024,
-#***                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-# adapted winners
-#    scores_window2, test_rewards2 = run_experiment(hidden_size=64, lr=3e-4, max_episodes=40, mini_batch_size=64,
-#                                                   nrmlz_adv=True, num_steps=2048, ppo_epochs=5, threshold_reward=10)
-#***    scores_window3, test_rewards3 = run_experiment(hidden_size=256, lr=3e-4, max_episodes=40, mini_batch_size=32,
-#***                                                      nrmlz_adv=True, num_steps=2048, ppo_epochs=3, threshold_reward=10)
     scores = [
 
     run_experiment(hidden_size=256, lr=1e-3, max_episodes=30, mini_batch_size=128,
