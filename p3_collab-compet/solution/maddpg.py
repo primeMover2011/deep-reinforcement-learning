@@ -59,6 +59,11 @@ class MADDPGAgent():
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
 
+    def save_models(self):
+        for i, agent in enumerate(self.agents):
+            agent.save_model(i)
+
+
     def reset(self):
         for agent in self.agents:
             agent.reset()

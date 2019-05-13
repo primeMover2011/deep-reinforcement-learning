@@ -62,17 +62,9 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
         print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}'
               .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window)), end='')
 
-        # save best score
-#        if ep_best_score > best_score:
-#            best_score = ep_best_score
-#            best_episode = i_episode
-
         if i_episode % PRINT_EVERY == 0:
             print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}\tMoving Average: {:.3f}'
                   .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window),moving_average[-1]))
-#        if i_episode % 500 == 0:
-#            print(f"ounoise:{ou_noise}")
-#            ou_noise = 2.0
 
         # print results
         if moving_average[-1] >= 0.5:
@@ -80,18 +72,14 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
 #            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
 #                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
 
-        # determine if environment is solved and keep best performing models
-#        if moving_average[-1] >= SOLVED_SCORE:
-#            if not already_solved:
-#                print('<-- Environment solved in {:d} episodes! \
-#                \n<-- Moving Average: {:.3f} over past {:d} episodes'.format(
-#                    i_episode - CONSEC_EPISODES, moving_average[-1], CONSEC_EPISODES))
-#                already_solved = True
+        if moving_average[-1] >= 0.5:
+            if not already_solved:
+                print('<-- Environment solved in {:d} episodes! \
+                \n<-- Moving Average: {:.3f} over past {:d} episodes'.format(
+                    i_episode - CONSEC_EPISODES, moving_average[-1], CONSEC_EPISODES))
+                already_solved = True
                 # save weights
-#                torch.save(agent_0.actor_local.state_dict(), 'models/checkpoint_actor_0.pth')
-#                torch.save(agent_0.critic_local.state_dict(), 'models/checkpoint_critic_0.pth')
-#                torch.save(agent_1.actor_local.state_dict(), 'models/checkpoint_actor_1.pth')
-#                torch.save(agent_1.critic_local.state_dict(), 'models/checkpoint_critic_1.pth')
+                maddpgagent.save_models()
 #            elif ep_best_score >= best_score:
 #                print('<-- Best episode so far!\
 #                \nEpisode {:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(

@@ -60,6 +60,10 @@ class Agent():
 
         self.noise = OUNoise(action_size, random_seed)
 
+    def save_model(self, agent_number):
+        torch.save(self.actor_local.state_dict(), f'models/checkpoint_actor_{agent_number}.pth')
+        torch.save(self.critic_local.state_dict(), f'models/checkpoint_critic_{agent_number}.pth')
+
     def act(self, state, noise = 0., train = False):
         """Returns actions for given state as per current policy.
         :param state: state as seen from single agent
