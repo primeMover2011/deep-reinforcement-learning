@@ -3,18 +3,35 @@ import numpy as np
 from collections import deque
 import os
 from maddpg import MADDPGAgent
-from tqdm import tqdm
-PRINT_EVERY = 100
+import matplotlib.pyplot as plt
+import datetime
+import torch
 
-def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
-    """Multi-Agent Deep Deterministic Policy Gradient (MADDPG)
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cpu")
 
-    Params
-    ======
-        n_episodes (int)      : maximum number of training episodes
-        max_t (int)           : maximum number of timesteps per episode
-        train_mode (bool)     : if 'True' set environment to training mode
 
+def plot(scores=[], ylabels=["Scores"], xlabel="Episode #", title="", text=""):
+    fig, ax = plt.subplots()
+
+    for score, label in zip(scores, ylabels):
+        ax.plot(np.arange(len(score)), score, label=label)
+    ax.grid()
+    ax.legend(loc='upper left', shadow=False, fontsize='x-large')
+    fig.tight_layout()
+    fig.savefig(f"plot_{datetime.datetime.now().isoformat().replace(':', '')}.png")
+    plt.show()
+
+
+def experiment(n_episodes=20000, ou_noise = 2.0, ou_noise_decay_rate = 0.998, train_mode=True,
+               threshold=0.5, buffer_size=1000000, batch_size=512, update_every=2, tau=0.01,
+               lr_actor=0.001, lr_critic=0.001):
+    """
+    Multi-Agent Deep Deterministic Policy Gradient (MADDPG)
+    :param n_episodes: maximum number of training episodes
+    :param train_mode: when 'True' set environment to training mode
+    :param threshold: score after which the environment is solved
+    :return scores_all, moving_average: List of all scores and moving average.
     """
 
     env = UnityEnvironment(file_name="Tennis/Tennis", base_port=64738)
@@ -27,10 +44,10 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
     states = env_info.vector_observations
     state_size = states.shape[1]
 
-    maddpgagent = MADDPGAgent(state_size, action_size, num_agents=num_agents, random_seed=0)
-
-    ou_noise = 2.0
-    ou_noise_decay_rate = 0.998
+    maddpgagent = MADDPGAgent(state_size=state_size, action_size=action_size, num_agents=num_agents,
+                              random_seed=0, buffer_size=buffer_size, device=device,
+                              batch_size=batch_size, update_every=update_every, tau=tau, lr_actor=lr_actor,
+                              lr_critic=lr_critic)
 
     scores_window = deque(maxlen=100)
     scores_all = []
@@ -43,14 +60,14 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
         scores = np.zeros(num_agents)
         while True:
             actions = maddpgagent.act(states, noise = ou_noise)
-            env_info = env.step(actions)[brain_name]  # send both agents' actions together to the environment
+            env_info = env.step(actions)[brain_name]  
             next_states = env_info.vector_observations
-            rewards = np.asarray(env_info.rewards)  # get reward
-            dones = np.asarray(env_info.local_done).astype(np.uint8)  # see if episode finished
+            rewards = np.asarray(env_info.rewards)  
+            dones = np.asarray(env_info.local_done).astype(np.uint8)
             maddpgagent.step(states, actions, rewards, next_states, dones)
-            scores += rewards  # update the score for each agent
-            states = next_states  # roll over states to next time step
-            if np.any(dones):  # exit loop if episode finished
+            scores += rewards 
+            states = next_states 
+            if np.any(dones):
                 break
 
         ep_best_score = np.max(scores)
@@ -62,42 +79,17 @@ def maddpg(n_episodes=20000, max_t=1000, train_mode=True):
         print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}'
               .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window)), end='')
 
-        if i_episode % PRINT_EVERY == 0:
+        if i_episode % 100 == 0:
             print('\rEpisode {}\tAverage Training Score: {:.3f}\tMin:{:.3f}\tMax:{:.3f}\tMoving Average: {:.3f}'
                   .format(i_episode, np.mean(scores_window), np.min(scores_window), np.max(scores_window),moving_average[-1]))
 
-        # print results
-        if moving_average[-1] >= 0.5:
-            print("B      I    NN   GOOOOO")
-#            print('Episodes {:0>4d}-{:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
-#                i_episode - PRINT_EVERY, i_episode, np.max(scores_all[-PRINT_EVERY:]), moving_average[-1]))
-
-        if moving_average[-1] >= 0.5:
-            if not already_solved:
-                print('<-- Environment solved in {:d} episodes! \
-                \n<-- Moving Average: {:.3f} over past {:d} episodes'.format(
-                    i_episode - CONSEC_EPISODES, moving_average[-1], CONSEC_EPISODES))
-                already_solved = True
-                # save weights
-                maddpgagent.save_models()
-#            elif ep_best_score >= best_score:
-#                print('<-- Best episode so far!\
-#                \nEpisode {:0>4d}\tMax Reward: {:.3f}\tMoving Average: {:.3f}'.format(
-#                    i_episode, ep_best_score, moving_average[-1]))
-                # save weights
-#                torch.save(agent_0.actor_local.state_dict(), 'models/checkpoint_actor_0.pth')
-#                torch.save(agent_0.critic_local.state_dict(), 'models/checkpoint_critic_0.pth')
-#                torch.save(agent_1.actor_local.state_dict(), 'models/checkpoint_actor_1.pth')
-#                torch.save(agent_1.critic_local.state_dict(), 'models/checkpoint_critic_1.pth')
-#            elif (i_episode - best_episode) >= 200:
-                # stop training if model stops converging
-#                print('<-- Training stopped. Best score not matched or exceeded for 200 episodes')
-#               break
-#            else:
-#                continue
-
+        if moving_average[-1] > threshold:
+            print('<-- Environment solved after {:d} episodes! \
+            \n<-- Moving Average: {:.3f}'.format(
+                i_episode, moving_average[-1]))
+            maddpgagent.save_models()
+            break
     return scores_all, moving_average
-
 
 
 
@@ -110,7 +102,13 @@ def main():
         print(os.getcwd())
     except:
         pass
-    maddpg(n_episodes=100000)
+
+    scores_all, moving_average = experiment(n_episodes=20000, ou_noise=2.0, ou_noise_decay_rate=0.998, train_mode=True,
+                   threshold=0.5, buffer_size=1000000, batch_size=512, update_every=2, tau=0.01,
+                   lr_actor=0.001, lr_critic=0.001)
+
+    plot(scores=[scores_all, moving_average], ylabels=["Scores", "Average Score"], xlabel="Episode #", title="", text="")
+
 
 if __name__ == "__main__":
     main()

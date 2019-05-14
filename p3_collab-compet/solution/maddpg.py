@@ -9,32 +9,44 @@ BATCH_SIZE = 512  # minibatch size
 GAMMA = 0.95  # discount factor
 UPDATE_EVERY = 2
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-#device = torch.device("cpu")
-
 
 class MADDPGAgent():
 
-    def __init__(self, state_size, action_size, num_agents, random_seed):
-        """Initialize 2 Agent objects.
+    def __init__(self, state_size, action_size, num_agents, random_seed, device,
+                 buffer_size = BUFFER_SIZE, batch_size = BATCH_SIZE,
+                 gamma = GAMMA, update_every = UPDATE_EVERY, tau=0.01, lr_actor=0.001, lr_critic=0.001):
+        """Initialize Agent objects
 
-        Params
-        ======
-            state_size (int): dimension of one agent's observation
-            action_size (int): dimension of each action
+        :param state_size: state size per agent
+        :param action_size: action size per agent
+        :param num_agents: number of agents
+        :param random_seed: random seed
+        :param buffer_size: size of replay buffer
+        :param batch_size: size of batches drawn from replay buffer
+        :param gamma: discount factor
+        :param update_every: after how many steps to update the models
         """
+
         self.device = device
+        self.batch_size=batch_size
         self.losses = []
         self.state_size = state_size
         self.action_size = action_size
         # Initialize the agents
         self.num_agents = num_agents
-        self.agents = [Agent(state_size=state_size, action_size=action_size, num_agents=num_agents, random_seed=random_seed) for _ in range(num_agents)]
-        # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
+        self.agents = [Agent(state_size=state_size, action_size=action_size,
+                             num_agents=num_agents, random_seed=random_seed,
+                             gamma=gamma, tau=tau, device=device,
+                             lr_actor=lr_actor, lr_critic=lr_critic) for _ in range(num_agents)]
 
+
+
+        # Replay memory
+        self.memory = ReplayBuffer(buffer_size=buffer_size,batch_size=batch_size, random_seed=random_seed, device=device)
+        self.gamma = gamma
+        self.update_every = update_every
         # Time steps for UPDATE EVERY
-        self.t_step = 0
+        self.time_step = 0
 
     def act(self, states, noise = 0., train=False):
         """Agents act with actor_local"""
@@ -51,13 +63,13 @@ class MADDPGAgent():
         # Save experience / reward
         self.memory.add(states, actions, rewards, next_states, dones)
 
-        self.t_step += 1
+        self.time_step += 1
 
         # Learn, if enough samples are available in memory
-        if self.t_step % UPDATE_EVERY == 0:
-            if learn is True and len(self.memory) > BATCH_SIZE:
+        if self.time_step % self.update_every == 0:
+            if learn is True and len(self.memory) > self.batch_size:
                 experiences = self.memory.sample()
-                self.learn(experiences, GAMMA)
+                self.learn(experiences, self.gamma)
 
     def save_models(self):
         for i, agent in enumerate(self.agents):
@@ -88,15 +100,15 @@ class MADDPGAgent():
 
         for agent_number, agent in enumerate(self.agents):
 
-            agent.update_critic(rewards = rewards[:, agent_number].unsqueeze(-1),
-                                dones = dones[:, agent_number].unsqueeze(-1),
+            agent.update_critic(rewards=rewards[:, agent_number].unsqueeze(-1),
+                                dones=dones[:, agent_number].unsqueeze(-1),
                                 all_states=flat_states,
-                                all_actions = flat_actions,
+                                all_actions=flat_actions,
                                 all_next_states=flat_next_states,
                                 all_next_actions=target_next_actions)
 
             predicted_actions_for_agent = predicted_actions.detach()
-            predicted_actions_for_agent[:,agent_number] = predicted_actions[:, agent_number]
+            predicted_actions_for_agent[:, agent_number] = predicted_actions[:, agent_number]
             predicted_actions_for_agent = self.flatten(predicted_actions_for_agent)
 
             agent.update_actor(all_states=flat_states, all_predicted_actions=predicted_actions_for_agent)
